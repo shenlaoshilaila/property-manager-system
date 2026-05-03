@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Five Property Manager</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">5P</div>
+          <div>
+            <strong>Five Property</strong>
+            <span>Manager</span>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Main navigation">
+          <button class="nav-item active" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" data-view="properties">Properties</button>
+          <button class="nav-item" data-view="tenants">Tenants</button>
+          <button class="nav-item" data-view="payments">Payments</button>
+          <button class="nav-item" data-view="maintenance">Maintenance</button>
+          <button class="nav-item" data-view="expenses">Expenses</button>
+          <button class="nav-item" data-view="documents">Documents</button>
+          <button class="nav-item" data-view="reports">Reports</button>
+          <button class="nav-item" data-view="settings">Settings</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Management workspace</p>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="select-label">
+              <span>Property</span>
+              <select id="propertyFilter"></select>
+            </label>
+            <button class="button ghost" id="resetDataBtn" type="button">Reset Sample Data</button>
+          </div>
+        </header>
+
+        <section class="view active" id="dashboardView">
+          <div class="kpi-grid" id="kpiGrid"></div>
+          <div class="dashboard-grid">
+            <section class="panel wide">
+              <div class="panel-head">
+                <h2>Property Portfolio</h2>
+                <button class="button compact" data-action="add-property" type="button">Add Property</button>
+              </div>
+              <div class="property-grid" id="dashboardProperties"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Open Maintenance</h2>
+                <button class="icon-button" data-action="add-maintenance" title="Add maintenance request" type="button">+</button>
+              </div>
+              <div class="stack-list" id="openMaintenance"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Lease Expirations</h2>
+              </div>
+              <div class="stack-list" id="leaseExpirations"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="propertiesView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Properties</h2>
+              <p>Manage the 5-property portfolio and unit occupancy.</p>
+            </div>
+            <button class="button" data-action="add-property" type="button">Add Property</button>
+          </div>
+          <div class="property-grid large" id="propertiesGrid"></div>
+        </section>
+
+        <section class="view" id="tenantsView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Tenants</h2>
+              <p>Contact details, leases, deposits, and active balances.</p>
+            </div>
+            <button class="button" data-action="add-tenant" type="button">Add Tenant</button>
+          </div>
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Property</th>
+                  <th>Unit</th>
+                  <th>Lease</th>
+                  <th>Rent</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tenantsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="paymentsView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Rent Payments</h2>
+              <p>Track monthly rent, late balances, receipts, and payment methods.</p>
+            </div>
+            <button class="button" data-action="add-payment" type="button">Record Payment</button>
+          </div>
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Property</th>
+                  <th>Due</th>
+                  <th>Paid</th>
+                  <th>Balance</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="paymentsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="maintenanceView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Maintenance</h2>
+              <p>Requests, priorities, assignments, and repair costs.</p>
+            </div>
+            <button class="button" data-action="add-maintenance" type="button">Add Request</button>
+          </div>
+          <div class="maintenance-board" id="maintenanceBoard"></div>
+        </section>
+
+        <section class="view" id="expensesView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Expenses</h2>
+              <p>Repairs, utilities, insurance, taxes, vendors, and receipts.</p>
+            </div>
+            <button class="button" data-action="add-expense" type="button">Add Expense</button>
+          </div>
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Property</th>
+                  <th>Category</th>
+                  <th>Vendor</th>
+                  <th>Amount</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="expensesTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="documentsView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Documents</h2>
+              <p>Lease files, receipts, inspection reports, IDs, and notices.</p>
+            </div>
+            <button class="button" data-action="add-document" type="button">Add Document</button>
+          </div>
+          <div class="document-grid" id="documentsGrid"></div>
+        </section>
+
+        <section class="view" id="reportsView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Reports</h2>
+              <p>Income, expense, occupancy, balances, and maintenance summaries.</p>
+            </div>
+          </div>
+          <div class="report-grid">
+            <section class="panel">
+              <h2>Profit By Property</h2>
+              <div class="bar-report" id="profitBars"></div>
+            </section>
+            <section class="panel">
+              <h2>Portfolio Summary</h2>
+              <div class="summary-list" id="portfolioSummary"></div>
+            </section>
+          </div>
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Property</th>
+                  <th>Expected Rent</th>
+                  <th>Collected</th>
+                  <th>Outstanding</th>
+                  <th>Expenses</th>
+                  <th>Net</th>
+                  <th>Occupancy</th>
+                </tr>
+              </thead>
+              <tbody id="reportsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="settingsView">
+          <div class="section-toolbar">
+            <div>
+              <h2>Settings</h2>
+              <p>Portfolio defaults and account preferences.</p>
+            </div>
+          </div>
+          <section class="panel settings-panel">
+            <form id="settingsForm" class="form-grid">
+              <label>
+                Manager Name
+                <input name="managerName" type="text">
+              </label>
+              <label>
+                Manager Email
+                <input name="managerEmail" type="email">
+              </label>
+              <label>
+                Late Fee
+                <input name="lateFee" min="0" step="1" type="number">
+              </label>
+              <label>
+                Default Rent Due Day
+                <input name="rentDueDay" min="1" max="28" step="1" type="number">
+              </label>
+              <button class="button" type="submit">Save Settings</button>
+            </form>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="recordDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-head">
+          <h2 id="dialogTitle">Add Record</h2>
+          <button class="icon-button ghost" value="cancel" type="submit" title="Close">x</button>
+        </div>
+        <div class="form-grid" id="dialogFields"></div>
+        <menu class="dialog-actions">
+          <button class="button ghost" value="cancel" type="submit">Cancel</button>
+          <button class="button" id="saveRecordBtn" value="default" type="button">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
