@@ -266,6 +266,7 @@ function bindActions() {
     if (action === "add-document") openDialog("document");
     if (action === "edit-document") openDialog("document", id);
     if (action === "close-dialog") closeDialog();
+    if (action === "delete-maintenance") deleteMaintenance(id);
   });
 
   $("#saveRecordBtn").addEventListener("click", saveDialogRecord);
@@ -554,11 +555,27 @@ function propertyCard(property) {
 function maintenanceListItem(request) {
   return `
     <div class="list-item">
-      <h3>${escapeHtml(request.title)}</h3>
+      <div class="list-item-head">
+        <h3>${escapeHtml(request.title)}</h3>
+        <button class="button compact danger-button" data-action="delete-maintenance" data-id="${request.id}" type="button">Delete</button>
+      </div>
       <p>${propertyName(request.propertyId)} Unit ${escapeHtml(request.unit)} - ${escapeHtml(request.assignedTo || "Unassigned")}</p>
       ${statusBadge(request.priority)}
     </div>
   `;
+}
+
+function deleteMaintenance(id) {
+  const request = data.maintenance.find((item) => item.id === id);
+  if (!request) return;
+
+  const confirmed = window.confirm(`Delete maintenance request "${request.title}"?`);
+  if (!confirmed) return;
+
+  data.maintenance = data.maintenance.filter((item) => item.id !== id);
+  saveData();
+  render();
+  showToast("Maintenance request deleted");
 }
 
 function maintenanceCard(request) {
