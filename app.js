@@ -168,10 +168,10 @@ const sampleData = {
     { id: "pay7", tenantId: "t7", propertyId: "p5", amountDue: 1850, amountPaid: 1850, dueDate: "2026-05-01", paidDate: "2026-04-29", method: "ACH", status: "Paid" }
   ],
   maintenance: [
-    { id: "m1", propertyId: "p1", tenantId: "t2", unit: "2B", title: "Kitchen faucet leak", category: "Plumbing", priority: "Medium", status: "In Progress", assignedTo: "ClearFlow Plumbing", estimatedCost: 240, finalCost: 0, description: "Faucet leaking under sink cabinet." },
-    { id: "m2", propertyId: "p3", tenantId: "t5", unit: "A", title: "Bedroom outlet not working", category: "Electrical", priority: "High", status: "New", assignedTo: "Unassigned", estimatedCost: 180, finalCost: 0, description: "One outlet stopped working after storm." },
-    { id: "m3", propertyId: "p5", tenantId: "t7", unit: "L2", title: "Hallway light replacement", category: "Common Area", priority: "Low", status: "Waiting for Parts", assignedTo: "Building Tech", estimatedCost: 95, finalCost: 0, description: "Fixture replacement ordered." },
-    { id: "m4", propertyId: "p2", tenantId: "t3", unit: "3", title: "HVAC filter service", category: "HVAC", priority: "Low", status: "Completed", assignedTo: "North Air", estimatedCost: 120, finalCost: 115, description: "Routine filter service complete." }
+    { id: "m1", propertyId: "p1", tenantId: "t2", unit: "2B", title: "Kitchen faucet leak", date: "2026-05-02", category: "Plumbing", priority: "Medium", status: "In Progress", assignedTo: "ClearFlow Plumbing", estimatedCost: 240, finalCost: 0, description: "Faucet leaking under sink cabinet." },
+    { id: "m2", propertyId: "p3", tenantId: "t5", unit: "A", title: "Bedroom outlet not working", date: "2026-05-03", category: "Electrical", priority: "High", status: "New", assignedTo: "Unassigned", estimatedCost: 180, finalCost: 0, description: "One outlet stopped working after storm." },
+    { id: "m3", propertyId: "p5", tenantId: "t7", unit: "L2", title: "Hallway light replacement", date: "2026-05-01", category: "Common Area", priority: "Low", status: "Waiting for Parts", assignedTo: "Building Tech", estimatedCost: 95, finalCost: 0, description: "Fixture replacement ordered." },
+    { id: "m4", propertyId: "p2", tenantId: "t3", unit: "3", title: "HVAC filter service", date: "2026-04-29", category: "HVAC", priority: "Low", status: "Completed", assignedTo: "North Air", estimatedCost: 120, finalCost: 115, description: "Routine filter service complete." }
   ],
   expenses: [
     { id: "e1", propertyId: "p1", date: "2026-05-02", category: "Repairs", vendor: "ClearFlow Plumbing", amount: 240, notes: "Kitchen leak estimate." },
@@ -563,6 +563,7 @@ function maintenanceListItem(request) {
         </div>
       </div>
       <p>${propertyName(request.propertyId)} Unit ${escapeHtml(request.unit)} - ${escapeHtml(request.assignedTo || "Unassigned")}</p>
+      <p class="muted-line">${request.date ? formatDate(request.date) : "Date not set"}</p>
       ${statusBadge(request.priority)}
     </div>
   `;
@@ -586,6 +587,7 @@ function maintenanceCard(request) {
     <article class="request-card">
       <h3>${escapeHtml(request.title)}</h3>
       <p>${propertyName(request.propertyId)} Unit ${escapeHtml(request.unit)}</p>
+      <p class="muted-line">${request.date ? formatDate(request.date) : "Date not set"}</p>
       <p>${escapeHtml(request.description || "")}</p>
       <div class="row-actions">
         ${statusBadge(request.priority)}
@@ -635,6 +637,10 @@ function formatDate(value) {
   if (!value) return "Not set";
   const date = new Date(`${value}T00:00:00`);
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function daysUntil(value) {
@@ -792,6 +798,7 @@ function fieldsForType(type, record) {
       selectField("Property", "propertyId", optionsForProperties(record.propertyId)),
       selectField("Tenant", "tenantId", optionsForTenants(record.tenantId)),
       field("Unit", "unit", "text", record.unit),
+      field("Date", "date", "date", record.date || todayDate()),
       field("Category", "category", "text", record.category || "Repair"),
       selectField("Priority", "priority", selectOptions(["Low", "Medium", "High", "Emergency"], record.priority || "Medium")),
       selectField("Status", "status", selectOptions(["New", "In Progress", "Waiting for Parts", "Completed", "Cancelled"], record.status || "New")),

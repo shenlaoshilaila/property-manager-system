@@ -421,6 +421,12 @@ textarea {
   margin-bottom: 0;
 }
 
+.muted-line {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
 .table-shell {
   overflow: auto;
 }
