@@ -795,10 +795,10 @@ function fieldsForType(type, record) {
   if (type === "maintenance") {
     return [
       field("Title", "title", "text", record.title, { required: true }),
+      field("Request Date", "date", "date", record.date || todayDate()),
       selectField("Property", "propertyId", optionsForProperties(record.propertyId)),
       selectField("Tenant", "tenantId", optionsForTenants(record.tenantId)),
       field("Unit", "unit", "text", record.unit),
-      field("Date", "date", "date", record.date || todayDate()),
       field("Category", "category", "text", record.category || "Repair"),
       selectField("Priority", "priority", selectOptions(["Low", "Medium", "High", "Emergency"], record.priority || "Medium")),
       selectField("Status", "status", selectOptions(["New", "In Progress", "Waiting for Parts", "Completed", "Cancelled"], record.status || "New")),
