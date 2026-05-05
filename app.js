@@ -265,6 +265,7 @@ function bindActions() {
     if (action === "edit-expense") openDialog("expense", id);
     if (action === "add-document") openDialog("document");
     if (action === "edit-document") openDialog("document", id);
+    if (action === "close-dialog") closeDialog();
   });
 
   $("#saveRecordBtn").addEventListener("click", saveDialogRecord);
@@ -695,6 +696,11 @@ function openDialog(type, id = null) {
   $("#recordDialog").showModal();
 }
 
+function closeDialog() {
+  $("#recordDialog").close();
+  dialogMode = null;
+}
+
 function titleForType(type) {
   return {
     property: "Property",
@@ -824,7 +830,7 @@ function saveDialogRecord() {
   saveData();
   populatePropertyFilter();
   render();
-  $("#recordDialog").close();
+  closeDialog();
   showToast(`${titleForType(type)} saved`);
 }
 
