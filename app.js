@@ -557,7 +557,10 @@ function maintenanceListItem(request) {
     <div class="list-item">
       <div class="list-item-head">
         <h3>${escapeHtml(request.title)}</h3>
-        <button class="button compact danger-button" data-action="delete-maintenance" data-id="${request.id}" type="button">Delete</button>
+        <div class="row-actions">
+          <button class="button compact ghost" data-action="edit-maintenance" data-id="${request.id}" type="button">Edit</button>
+          <button class="button compact danger-button" data-action="delete-maintenance" data-id="${request.id}" type="button">Delete</button>
+        </div>
       </div>
       <p>${propertyName(request.propertyId)} Unit ${escapeHtml(request.unit)} - ${escapeHtml(request.assignedTo || "Unassigned")}</p>
       ${statusBadge(request.priority)}
