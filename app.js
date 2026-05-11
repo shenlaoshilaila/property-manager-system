@@ -190,7 +190,7 @@ const sampleData = {
 let data = loadData();
 let activeView = "dashboard";
 let selectedProperty = "all";
-let selectedExpenseMonth = null;
+let selectedExpenseYear = null;
 let dialogMode = null;
 
 const viewTitles = {
@@ -247,8 +247,8 @@ function bindNavigation() {
     render();
   });
 
-  $("#expenseMonthFilter").addEventListener("change", (event) => {
-    selectedExpenseMonth = event.target.value;
+  $("#expenseYearFilter").addEventListener("change", (event) => {
+    selectedExpenseYear = event.target.value;
     renderExpenses();
   });
 }
@@ -467,39 +467,40 @@ function renderMaintenance() {
 }
 
 function renderExpenses() {
-  const monthOptions = expenseMonthOptions();
-  if (!selectedExpenseMonth || !monthOptions.some((option) => option.key === selectedExpenseMonth)) {
-    selectedExpenseMonth = monthOptions[0]?.key || "all";
+  const yearOptions = expenseYearOptions();
+  if (!selectedExpenseYear || !yearOptions.some((option) => option.key === selectedExpenseYear)) {
+    selectedExpenseYear = yearOptions[0]?.key || "all";
   }
 
-  $("#expenseMonthFilter").innerHTML = monthOptions.map((option) => `
-    <option value="${option.key}" ${option.key === selectedExpenseMonth ? "selected" : ""}>${option.label}</option>
+  $("#expenseYearFilter").innerHTML = yearOptions.map((option) => `
+    <option value="${option.key}" ${option.key === selectedExpenseYear ? "selected" : ""}>${option.label}</option>
   `).join("");
 
-  const monthExpenses = expensesForSelectedMonth();
-  const totals = expenseTotalsByProperty(monthExpenses);
+  const yearExpenses = expensesForSelectedYear();
+  const totals = expenseTotalsByProperty(yearExpenses);
   const ranked = [...totals].sort((a, b) => b.total - a.total);
   const top = ranked.find((item) => item.total > 0);
-  const totalSpent = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const expenseCount = monthExpenses.length;
+  const totalSpent = yearExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const expenseCount = yearExpenses.length;
   const average = expenseCount ? totalSpent / expenseCount : 0;
+  const periodLabel = selectedExpenseYear === "all" ? "all years" : selectedExpenseYear;
 
   $("#expenseInsights").innerHTML = [
     expenseInsightCard("Total Spent", money.format(totalSpent), `${expenseCount} expense ${expenseCount === 1 ? "entry" : "entries"}`),
-    expenseInsightCard("Highest Cost Property", top ? escapeHtml(top.property.name) : "None", top ? `${money.format(top.total)} this month` : "No expenses recorded"),
+    expenseInsightCard("Highest Cost Property", top ? escapeHtml(top.property.name) : "None", top ? `${money.format(top.total)} in ${periodLabel}` : "No expenses recorded"),
     expenseInsightCard("Average Expense", money.format(average), "per expense entry")
   ].join("");
 
-  $("#expenseRankingNote").textContent = selectedExpenseMonth === "all"
+  $("#expenseRankingNote").textContent = selectedExpenseYear === "all"
     ? "All recorded expenses"
-    : monthLabel(selectedExpenseMonth);
+    : selectedExpenseYear;
 
   const maxTotal = Math.max(...ranked.map((item) => item.total), 1);
   $("#expenseRanking").innerHTML = ranked.length
     ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal)).join("")
     : emptyState("No property expenses to rank");
 
-  const sortedExpenses = [...monthExpenses].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const sortedExpenses = [...yearExpenses].sort((a, b) => String(b.date).localeCompare(String(a.date)));
   $("#expensesTable").innerHTML = sortedExpenses.length
     ? sortedExpenses.map((expense) => `
       <tr>
@@ -511,19 +512,19 @@ function renderExpenses() {
         <td><button class="button compact ghost" data-action="edit-expense" data-id="${expense.id}" type="button">Edit</button></td>
       </tr>
     `).join("")
-    : `<tr><td colspan="6">No expenses for this month.</td></tr>`;
+    : `<tr><td colspan="6">No expenses for this year.</td></tr>`;
 }
 
-function expenseMonthOptions() {
-  const months = new Set(filtered(data.expenses).map((expense) => monthKey(expense.date)).filter(Boolean));
-  const monthOptions = [...months].sort().reverse().map((key) => ({ key, label: monthLabel(key) }));
-  return monthOptions.length ? [...monthOptions, { key: "all", label: "All Months" }] : [{ key: "all", label: "All Months" }];
+function expenseYearOptions() {
+  const years = new Set(filtered(data.expenses).map((expense) => yearKey(expense.date)).filter(Boolean));
+  const yearOptions = [...years].sort().reverse().map((key) => ({ key, label: key }));
+  return yearOptions.length ? [...yearOptions, { key: "all", label: "All Years" }] : [{ key: "all", label: "All Years" }];
 }
 
-function expensesForSelectedMonth() {
+function expensesForSelectedYear() {
   const expenses = filtered(data.expenses);
-  if (selectedExpenseMonth === "all") return expenses;
-  return expenses.filter((expense) => monthKey(expense.date) === selectedExpenseMonth);
+  if (selectedExpenseYear === "all") return expenses;
+  return expenses.filter((expense) => yearKey(expense.date) === selectedExpenseYear);
 }
 
 function expenseTotalsByProperty(expenses) {
@@ -746,15 +747,9 @@ function formatDate(value) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function monthKey(value) {
+function yearKey(value) {
   if (!value) return "";
-  return String(value).slice(0, 7);
-}
-
-function monthLabel(key) {
-  if (key === "all") return "All Months";
-  const date = new Date(`${key}-01T00:00:00`);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return String(value).slice(0, 4);
 }
 
 function todayDate() {

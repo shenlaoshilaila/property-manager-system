@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Five Property Manager</title>
-    <link rel="stylesheet" href="styles.css?v=20260511-expenses">
+    <link rel="stylesheet" href="styles.css?v=20260511-expense-years">
   </head>
   <body>
     <div class="app">
@@ -149,12 +149,12 @@
           <div class="section-toolbar">
             <div>
               <h2>Expenses</h2>
-              <p>Monthly property costs, top spenders, vendors, and receipts.</p>
+              <p>Annual property costs, top spenders, vendors, and receipts.</p>
             </div>
             <div class="section-actions">
               <label class="select-label">
-                <span>Month</span>
-                <select id="expenseMonthFilter"></select>
+                <span>Year</span>
+                <select id="expenseYearFilter"></select>
               </label>
               <button class="button" data-action="add-expense" type="button">Add Expense</button>
             </div>
@@ -277,6 +277,6 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260511-expenses"></script>
+    <script src="app.js?v=20260511-expense-years"></script>
   </body>
 </html>
