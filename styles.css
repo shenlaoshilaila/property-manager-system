@@ -171,6 +171,13 @@ p {
   margin-bottom: 0;
 }
 
+.section-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .select-label {
   display: grid;
   gap: 4px;
@@ -398,6 +405,126 @@ textarea {
   display: grid;
   gap: 10px;
   margin-top: 12px;
+}
+
+.expense-insights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.expense-insight-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-height: 116px;
+  padding: 16px;
+}
+
+.expense-insight-card span {
+  color: var(--muted);
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.expense-insight-card strong {
+  display: block;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.expense-insight-card small {
+  color: var(--muted);
+  display: block;
+  margin-top: 8px;
+}
+
+.expense-ranking-panel {
+  margin-bottom: 14px;
+}
+
+.expense-ranking-panel .panel-head p {
+  margin: 0;
+}
+
+.expense-ranking {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.expense-rank-row {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.expense-rank-row.top {
+  border-color: #d5a23f;
+  background: #fff9e7;
+}
+
+.rank-number {
+  background: #e9eee9;
+  border-radius: 8px;
+  display: grid;
+  font-weight: 900;
+  height: 42px;
+  place-items: center;
+  width: 42px;
+}
+
+.expense-rank-row.top .rank-number {
+  background: #e7c35a;
+}
+
+.rank-main {
+  min-width: 0;
+}
+
+.rank-title {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.rank-title span,
+.rank-main p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.rank-main p {
+  margin: 7px 0 0;
+}
+
+.expense-bar-track {
+  background: #e9eee9;
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.expense-bar-fill {
+  background: var(--accent-2);
+  height: 100%;
+}
+
+.rank-total {
+  font-size: 20px;
+  font-weight: 900;
+  text-align: right;
 }
 
 .list-item {
@@ -657,7 +784,8 @@ dialog::backdrop {
 
   .topbar,
   .topbar-actions,
-  .section-toolbar {
+  .section-toolbar,
+  .section-actions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -668,9 +796,19 @@ dialog::backdrop {
   .dashboard-grid,
   .document-grid,
   .report-grid,
+  .expense-insights,
   .maintenance-board,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .expense-rank-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .rank-total {
+    grid-column: 2;
+    text-align: left;
   }
 
   .nav {

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Five Property Manager</title>
-    <link rel="stylesheet" href="styles.css?v=20260504-date2">
+    <link rel="stylesheet" href="styles.css?v=20260511-expenses">
   </head>
   <body>
     <div class="app">
@@ -149,10 +149,24 @@
           <div class="section-toolbar">
             <div>
               <h2>Expenses</h2>
-              <p>Repairs, utilities, insurance, taxes, vendors, and receipts.</p>
+              <p>Monthly property costs, top spenders, vendors, and receipts.</p>
             </div>
-            <button class="button" data-action="add-expense" type="button">Add Expense</button>
+            <div class="section-actions">
+              <label class="select-label">
+                <span>Month</span>
+                <select id="expenseMonthFilter"></select>
+              </label>
+              <button class="button" data-action="add-expense" type="button">Add Expense</button>
+            </div>
           </div>
+          <div class="expense-insights" id="expenseInsights"></div>
+          <section class="panel expense-ranking-panel">
+            <div class="panel-head">
+              <h2>Property Cost Ranking</h2>
+              <p id="expenseRankingNote"></p>
+            </div>
+            <div class="expense-ranking" id="expenseRanking"></div>
+          </section>
           <div class="table-shell">
             <table>
               <thead>
@@ -263,6 +277,6 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260504-date2"></script>
+    <script src="app.js?v=20260511-expenses"></script>
   </body>
 </html>
