@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Five Property Manager</title>
-    <link rel="stylesheet" href="styles.css?v=20260511-expense-dashboard">
+    <link rel="stylesheet" href="styles.css?v=20260511-profit-dashboard">
   </head>
   <body>
     <div class="app">
@@ -210,19 +210,34 @@
           <div class="section-toolbar">
             <div>
               <h2>Reports</h2>
-              <p>Income, expense, occupancy, balances, and maintenance summaries.</p>
+              <p>Profit by property, by month, and by year.</p>
+            </div>
+            <div class="section-actions">
+              <label class="select-label">
+                <span>Year</span>
+                <select id="profitYearFilter"></select>
+              </label>
+              <label class="select-label">
+                <span>Month</span>
+                <select id="profitMonthFilter"></select>
+              </label>
             </div>
           </div>
-          <div class="report-grid">
-            <section class="panel">
-              <h2>Profit By Property</h2>
-              <div class="bar-report" id="profitBars"></div>
-            </section>
-            <section class="panel">
-              <h2>Portfolio Summary</h2>
-              <div class="summary-list" id="portfolioSummary"></div>
-            </section>
-          </div>
+          <div class="expense-insights profit-insights" id="profitInsights"></div>
+          <section class="panel expense-ranking-panel">
+            <div class="panel-head">
+              <h2>Property Profit Ranking</h2>
+              <p id="profitRankingNote"></p>
+            </div>
+            <div class="expense-ranking" id="profitRanking"></div>
+          </section>
+          <section class="panel expense-ranking-panel">
+            <div class="panel-head">
+              <h2>Monthly Profit Dashboard</h2>
+              <p id="profitMonthNote"></p>
+            </div>
+            <div class="expense-ranking" id="profitMonthBreakdown"></div>
+          </section>
           <div class="table-shell">
             <table>
               <thead>
@@ -288,6 +303,6 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260511-expense-dashboard"></script>
+    <script src="app.js?v=20260511-profit-dashboard"></script>
   </body>
 </html>

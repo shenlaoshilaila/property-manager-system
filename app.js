@@ -192,6 +192,8 @@ let activeView = "dashboard";
 let selectedProperty = "all";
 let selectedExpenseYear = null;
 let selectedExpenseMonth = "all";
+let selectedProfitYear = null;
+let selectedProfitMonth = "all";
 let dialogMode = null;
 
 const viewTitles = {
@@ -257,6 +259,17 @@ function bindNavigation() {
   $("#expenseMonthFilter").addEventListener("change", (event) => {
     selectedExpenseMonth = event.target.value;
     renderExpenses();
+  });
+
+  $("#profitYearFilter").addEventListener("change", (event) => {
+    selectedProfitYear = event.target.value;
+    selectedProfitMonth = "all";
+    renderReports();
+  });
+
+  $("#profitMonthFilter").addEventListener("change", (event) => {
+    selectedProfitMonth = event.target.value;
+    renderReports();
   });
 }
 
@@ -685,38 +698,212 @@ function renderDocuments() {
 }
 
 function renderReports() {
-  const properties = filtered(data.properties);
-  const rows = properties.map((property) => ({ property, metrics: propertyMetrics(property.id) }));
-  const maxNet = Math.max(...rows.map((row) => Math.abs(row.metrics.net)), 1);
+  const yearOptions = profitYearOptions();
+  if (!selectedProfitYear || !yearOptions.some((option) => option.key === selectedProfitYear)) {
+    selectedProfitYear = yearOptions[0]?.key || "all";
+  }
 
-  $("#profitBars").innerHTML = rows.map(({ property, metrics }) => `
-    <div class="bar-row">
-      <strong>${escapeHtml(property.name)}</strong>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, Math.round((Math.abs(metrics.net) / maxNet) * 100))}%"></div></div>
-      <span>${money.format(metrics.net)}</span>
-    </div>
+  $("#profitYearFilter").innerHTML = yearOptions.map((option) => `
+    <option value="${option.key}" ${option.key === selectedProfitYear ? "selected" : ""}>${option.label}</option>
   `).join("");
 
-  const metrics = portfolioMetrics();
-  $("#portfolioSummary").innerHTML = [
-    summaryItem("Expected Rent", money.format(metrics.expected)),
-    summaryItem("Collected Rent", money.format(metrics.collected)),
-    summaryItem("Outstanding Rent", money.format(metrics.outstanding)),
-    summaryItem("Expenses", money.format(metrics.expenses)),
-    summaryItem("Net Income", money.format(metrics.net))
+  const yearPayments = paymentsForSelectedProfitYear();
+  const yearExpenses = expensesForSelectedProfitYear();
+  const monthOptions = profitMonthOptions(yearPayments, yearExpenses);
+  if (!monthOptions.some((option) => option.key === selectedProfitMonth)) {
+    selectedProfitMonth = "all";
+  }
+
+  $("#profitMonthFilter").innerHTML = monthOptions.map((option) => `
+    <option value="${option.key}" ${option.key === selectedProfitMonth ? "selected" : ""}>${option.label}</option>
+  `).join("");
+
+  const detailPayments = paymentsForSelectedProfitMonth(yearPayments);
+  const detailExpenses = expensesForSelectedProfitMonth(yearExpenses);
+  const yearlyTotals = profitTotalsByProperty(yearPayments, yearExpenses);
+  const periodTotals = profitTotalsByProperty(detailPayments, detailExpenses);
+  const ranked = [...yearlyTotals].sort((a, b) => b.profit - a.profit);
+  const periodRanked = [...periodTotals].sort((a, b) => b.profit - a.profit);
+  const yearTop = ranked[0];
+  const periodTop = periodRanked[0];
+  const yearSummary = profitSummary(yearPayments, yearExpenses);
+  const periodSummary = profitSummary(detailPayments, detailExpenses);
+  const yearLabel = selectedProfitYear === "all" ? "all years" : selectedProfitYear;
+  const periodLabel = selectedProfitMonth === "all" ? `all months in ${yearLabel}` : monthLabel(selectedProfitMonth);
+
+  $("#profitInsights").innerHTML = [
+    expenseInsightCard("Year Profit", money.format(yearSummary.profit), `${money.format(yearSummary.income)} rent - ${money.format(yearSummary.expenses)} expenses`),
+    expenseInsightCard("Year Top Property", yearTop ? escapeHtml(yearTop.property.name) : "None", yearTop ? `${money.format(yearTop.profit)} in ${yearLabel}` : "No profit recorded"),
+    expenseInsightCard("Month Profit", money.format(periodSummary.profit), `${money.format(periodSummary.income)} rent - ${money.format(periodSummary.expenses)} expenses`),
+    expenseInsightCard("Month Top Property", periodTop ? escapeHtml(periodTop.property.name) : "None", periodTop ? `${money.format(periodTop.profit)} for ${periodLabel}` : "No profit recorded")
   ].join("");
 
-  $("#reportsTable").innerHTML = rows.map(({ property, metrics }) => `
+  $("#profitRankingNote").textContent = selectedProfitYear === "all" ? "All recorded years" : selectedProfitYear;
+  const maxYearProfit = Math.max(...ranked.map((item) => Math.abs(item.profit)), 1);
+  $("#profitRanking").innerHTML = ranked.length
+    ? ranked.map((item, index) => profitRankRow(item, index, maxYearProfit)).join("")
+    : emptyState("No property profit to rank");
+
+  const monthlyProfits = profitTotalsByMonth(yearPayments, yearExpenses);
+  const maxMonthProfit = Math.max(...monthlyProfits.map((item) => Math.abs(item.profit)), 1);
+  $("#profitMonthNote").textContent = selectedProfitYear === "all" ? "All years" : selectedProfitYear;
+  $("#profitMonthBreakdown").innerHTML = monthlyProfits.length
+    ? monthlyProfits.map((item, index) => profitMonthRow(item, index, maxMonthProfit)).join("")
+    : emptyState("No monthly profit to show");
+
+  $("#reportsTable").innerHTML = periodRanked.map(({ property, expected, income, outstanding, expenses, profit }) => `
     <tr>
       <td><strong>${escapeHtml(property.name)}</strong></td>
-      <td>${money.format(metrics.expected)}</td>
-      <td>${money.format(metrics.collected)}</td>
-      <td>${money.format(metrics.outstanding)}</td>
-      <td>${money.format(metrics.expenses)}</td>
-      <td>${money.format(metrics.net)}</td>
-      <td>${Math.round(metrics.occupancy * 100)}%</td>
+      <td>${money.format(expected)}</td>
+      <td>${money.format(income)}</td>
+      <td>${money.format(outstanding)}</td>
+      <td>${money.format(expenses)}</td>
+      <td>${money.format(profit)}</td>
+      <td>${Math.round(propertyMetrics(property.id).occupancy * 100)}%</td>
     </tr>
   `).join("");
+}
+
+function profitYearOptions() {
+  const years = new Set([
+    ...filtered(data.payments).map((payment) => yearKey(paymentDate(payment))).filter(Boolean),
+    ...filtered(data.expenses).map((expense) => yearKey(expense.date)).filter(Boolean)
+  ]);
+  const yearOptions = [...years].sort().reverse().map((key) => ({ key, label: key }));
+  return yearOptions.length ? [...yearOptions, { key: "all", label: "All Years" }] : [{ key: "all", label: "All Years" }];
+}
+
+function paymentsForSelectedProfitYear() {
+  const payments = filtered(data.payments);
+  if (selectedProfitYear === "all") return payments;
+  return payments.filter((payment) => yearKey(paymentDate(payment)) === selectedProfitYear);
+}
+
+function expensesForSelectedProfitYear() {
+  const expenses = filtered(data.expenses);
+  if (selectedProfitYear === "all") return expenses;
+  return expenses.filter((expense) => yearKey(expense.date) === selectedProfitYear);
+}
+
+function profitMonthOptions(payments, expenses) {
+  const months = new Set([
+    ...payments.map((payment) => monthKey(paymentDate(payment))).filter(Boolean),
+    ...expenses.map((expense) => monthKey(expense.date)).filter(Boolean)
+  ]);
+  const monthOptions = [...months].sort().reverse().map((key) => ({ key, label: monthLabel(key) }));
+  return [{ key: "all", label: "All Months" }, ...monthOptions];
+}
+
+function paymentsForSelectedProfitMonth(payments) {
+  if (selectedProfitMonth === "all") return payments;
+  return payments.filter((payment) => monthKey(paymentDate(payment)) === selectedProfitMonth);
+}
+
+function expensesForSelectedProfitMonth(expenses) {
+  if (selectedProfitMonth === "all") return expenses;
+  return expenses.filter((expense) => monthKey(expense.date) === selectedProfitMonth);
+}
+
+function profitTotalsByProperty(payments, expenses) {
+  return filtered(data.properties).map((property) => {
+    const propertyPayments = payments.filter((payment) => payment.propertyId === property.id);
+    const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
+    const expected = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountDue || 0), 0);
+    const income = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountPaid || 0), 0);
+    const expenseTotal = propertyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+    return {
+      property,
+      expected,
+      income,
+      outstanding: expected - income,
+      expenses: expenseTotal,
+      profit: income - expenseTotal,
+      paymentCount: propertyPayments.length,
+      expenseCount: propertyExpenses.length
+    };
+  });
+}
+
+function profitSummary(payments, expenses) {
+  const income = payments.reduce((sum, payment) => sum + Number(payment.amountPaid || 0), 0);
+  const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  return {
+    income,
+    expenses: expenseTotal,
+    profit: income - expenseTotal
+  };
+}
+
+function profitTotalsByMonth(payments, expenses) {
+  const months = new Set([
+    ...payments.map((payment) => monthKey(paymentDate(payment))).filter(Boolean),
+    ...expenses.map((expense) => monthKey(expense.date)).filter(Boolean)
+  ]);
+
+  return [...months].sort().reverse().map((key) => {
+    const monthPayments = payments.filter((payment) => monthKey(paymentDate(payment)) === key);
+    const monthExpenses = expenses.filter((expense) => monthKey(expense.date) === key);
+    const rankedProperties = profitTotalsByProperty(monthPayments, monthExpenses).sort((a, b) => b.profit - a.profit);
+    const summary = profitSummary(monthPayments, monthExpenses);
+
+    return {
+      key,
+      ...summary,
+      topProperty: rankedProperties[0],
+      payments: monthPayments.length,
+      expenseCount: monthExpenses.length
+    };
+  });
+}
+
+function profitRankRow(item, index, maxProfit) {
+  const percentage = Math.max(4, Math.round((Math.abs(item.profit) / maxProfit) * 100));
+  const topClass = index === 0 && item.profit > 0 ? " top" : "";
+  const fillClass = item.profit < 0 ? " loss" : "";
+
+  return `
+    <article class="expense-rank-row${topClass}">
+      <div class="rank-number">${index + 1}</div>
+      <div class="rank-main">
+        <div class="rank-title">
+          <strong>${escapeHtml(item.property.name)}</strong>
+          <span>${item.paymentCount} rent / ${item.expenseCount} expenses</span>
+        </div>
+        <div class="expense-bar-track">
+          <div class="expense-bar-fill profit-bar-fill${fillClass}" style="width:${percentage}%"></div>
+        </div>
+        <p>${money.format(item.income)} rent - ${money.format(item.expenses)} expenses</p>
+      </div>
+      <div class="rank-total">${money.format(item.profit)}</div>
+    </article>
+  `;
+}
+
+function profitMonthRow(item, index, maxProfit) {
+  const percentage = Math.max(4, Math.round((Math.abs(item.profit) / maxProfit) * 100));
+  const topClass = index === 0 && item.profit > 0 ? " top" : "";
+  const fillClass = item.profit < 0 ? " loss" : "";
+  const topProperty = item.topProperty
+    ? `${escapeHtml(item.topProperty.property.name)} - ${money.format(item.topProperty.profit)}`
+    : "No property profit";
+
+  return `
+    <article class="expense-rank-row${topClass}">
+      <div class="rank-number">${index + 1}</div>
+      <div class="rank-main">
+        <div class="rank-title">
+          <strong>${monthLabel(item.key)}</strong>
+          <span>${item.payments} rent / ${item.expenseCount} expenses</span>
+        </div>
+        <div class="expense-bar-track">
+          <div class="expense-bar-fill profit-bar-fill${fillClass}" style="width:${percentage}%"></div>
+        </div>
+        <p>Highest property: ${topProperty}</p>
+      </div>
+      <div class="rank-total">${money.format(item.profit)}</div>
+    </article>
+  `;
 }
 
 function renderSettings() {
@@ -833,6 +1020,10 @@ function formatDate(value) {
   if (!value) return "Not set";
   const date = new Date(`${value}T00:00:00`);
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function paymentDate(payment) {
+  return payment.paidDate || payment.dueDate || "";
 }
 
 function yearKey(value) {
