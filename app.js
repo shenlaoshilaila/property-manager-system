@@ -191,6 +191,7 @@ let data = loadData();
 let activeView = "dashboard";
 let selectedProperty = "all";
 let selectedExpenseYear = null;
+let selectedExpenseMonth = "all";
 let dialogMode = null;
 
 const viewTitles = {
@@ -249,6 +250,12 @@ function bindNavigation() {
 
   $("#expenseYearFilter").addEventListener("change", (event) => {
     selectedExpenseYear = event.target.value;
+    selectedExpenseMonth = "all";
+    renderExpenses();
+  });
+
+  $("#expenseMonthFilter").addEventListener("change", (event) => {
+    selectedExpenseMonth = event.target.value;
     renderExpenses();
   });
 }
@@ -477,18 +484,34 @@ function renderExpenses() {
   `).join("");
 
   const yearExpenses = expensesForSelectedYear();
-  const totals = expenseTotalsByProperty(yearExpenses);
-  const ranked = [...totals].sort((a, b) => b.total - a.total);
-  const top = ranked.find((item) => item.total > 0);
+  const monthOptions = expenseMonthOptions(yearExpenses);
+  if (!monthOptions.some((option) => option.key === selectedExpenseMonth)) {
+    selectedExpenseMonth = "all";
+  }
+
+  $("#expenseMonthFilter").innerHTML = monthOptions.map((option) => `
+    <option value="${option.key}" ${option.key === selectedExpenseMonth ? "selected" : ""}>${option.label}</option>
+  `).join("");
+
+  const detailExpenses = expensesForSelectedMonth(yearExpenses);
+  const yearlyTotals = expenseTotalsByProperty(yearExpenses);
+  const monthlyTotals = expenseTotalsByProperty(detailExpenses);
+  const ranked = [...yearlyTotals].sort((a, b) => b.total - a.total);
+  const monthlyRanked = [...monthlyTotals].sort((a, b) => b.total - a.total);
+  const yearTop = ranked.find((item) => item.total > 0);
+  const monthTop = monthlyRanked.find((item) => item.total > 0);
   const totalSpent = yearExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const monthSpent = detailExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const expenseCount = yearExpenses.length;
-  const average = expenseCount ? totalSpent / expenseCount : 0;
+  const monthCount = detailExpenses.length;
   const periodLabel = selectedExpenseYear === "all" ? "all years" : selectedExpenseYear;
+  const monthPeriodLabel = selectedExpenseMonth === "all" ? `all months in ${periodLabel}` : monthLabel(selectedExpenseMonth);
 
   $("#expenseInsights").innerHTML = [
-    expenseInsightCard("Total Spent", money.format(totalSpent), `${expenseCount} expense ${expenseCount === 1 ? "entry" : "entries"}`),
-    expenseInsightCard("Highest Cost Property", top ? escapeHtml(top.property.name) : "None", top ? `${money.format(top.total)} in ${periodLabel}` : "No expenses recorded"),
-    expenseInsightCard("Average Expense", money.format(average), "per expense entry")
+    expenseInsightCard("Year Total", money.format(totalSpent), `${expenseCount} expense ${expenseCount === 1 ? "entry" : "entries"} in ${periodLabel}`),
+    expenseInsightCard("Year Highest Property", yearTop ? escapeHtml(yearTop.property.name) : "None", yearTop ? `${money.format(yearTop.total)} in ${periodLabel}` : "No expenses recorded"),
+    expenseInsightCard("Month Total", money.format(monthSpent), `${monthCount} expense ${monthCount === 1 ? "entry" : "entries"} for ${monthPeriodLabel}`),
+    expenseInsightCard("Month Highest Property", monthTop ? escapeHtml(monthTop.property.name) : "None", monthTop ? `${money.format(monthTop.total)} for ${monthPeriodLabel}` : "No expenses recorded")
   ].join("");
 
   $("#expenseRankingNote").textContent = selectedExpenseYear === "all"
@@ -500,7 +523,14 @@ function renderExpenses() {
     ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal)).join("")
     : emptyState("No property expenses to rank");
 
-  const sortedExpenses = [...yearExpenses].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const monthlyCosts = expenseTotalsByMonth(yearExpenses);
+  const maxMonthTotal = Math.max(...monthlyCosts.map((item) => item.total), 1);
+  $("#expenseMonthNote").textContent = selectedExpenseYear === "all" ? "All years" : selectedExpenseYear;
+  $("#expenseMonthBreakdown").innerHTML = monthlyCosts.length
+    ? monthlyCosts.map((item, index) => expenseMonthRow(item, index, maxMonthTotal)).join("")
+    : emptyState("No monthly expenses to show");
+
+  const sortedExpenses = [...detailExpenses].sort((a, b) => String(b.date).localeCompare(String(a.date)));
   $("#expensesTable").innerHTML = sortedExpenses.length
     ? sortedExpenses.map((expense) => `
       <tr>
@@ -512,7 +542,7 @@ function renderExpenses() {
         <td><button class="button compact ghost" data-action="edit-expense" data-id="${expense.id}" type="button">Edit</button></td>
       </tr>
     `).join("")
-    : `<tr><td colspan="6">No expenses for this year.</td></tr>`;
+    : `<tr><td colspan="6">No expenses for this period.</td></tr>`;
 }
 
 function expenseYearOptions() {
@@ -525,6 +555,17 @@ function expensesForSelectedYear() {
   const expenses = filtered(data.expenses);
   if (selectedExpenseYear === "all") return expenses;
   return expenses.filter((expense) => yearKey(expense.date) === selectedExpenseYear);
+}
+
+function expenseMonthOptions(expenses) {
+  const months = new Set(expenses.map((expense) => monthKey(expense.date)).filter(Boolean));
+  const monthOptions = [...months].sort().reverse().map((key) => ({ key, label: monthLabel(key) }));
+  return [{ key: "all", label: "All Months" }, ...monthOptions];
+}
+
+function expensesForSelectedMonth(expenses) {
+  if (selectedExpenseMonth === "all") return expenses;
+  return expenses.filter((expense) => monthKey(expense.date) === selectedExpenseMonth);
 }
 
 function expenseTotalsByProperty(expenses) {
@@ -542,6 +583,28 @@ function expenseTotalsByProperty(expenses) {
       total,
       count: propertyExpenses.length,
       biggestExpense
+    };
+  });
+}
+
+function expenseTotalsByMonth(expenses) {
+  const monthMap = new Map();
+
+  expenses.forEach((expense) => {
+    const key = monthKey(expense.date);
+    if (!key) return;
+    const current = monthMap.get(key) || { key, total: 0, count: 0, expenses: [] };
+    current.total += Number(expense.amount || 0);
+    current.count += 1;
+    current.expenses.push(expense);
+    monthMap.set(key, current);
+  });
+
+  return [...monthMap.values()].sort((a, b) => b.key.localeCompare(a.key)).map((month) => {
+    const rankedProperties = expenseTotalsByProperty(month.expenses).sort((a, b) => b.total - a.total);
+    return {
+      ...month,
+      topProperty: rankedProperties.find((item) => item.total > 0)
     };
   });
 }
@@ -575,6 +638,31 @@ function expenseRankRow(item, index, maxTotal) {
           <div class="expense-bar-fill" style="width:${percentage}%"></div>
         </div>
         <p>${biggest}</p>
+      </div>
+      <div class="rank-total">${money.format(item.total)}</div>
+    </article>
+  `;
+}
+
+function expenseMonthRow(item, index, maxTotal) {
+  const percentage = item.total ? Math.max(4, Math.round((item.total / maxTotal) * 100)) : 0;
+  const topClass = index === 0 && item.total > 0 ? " top" : "";
+  const topProperty = item.topProperty
+    ? `${escapeHtml(item.topProperty.property.name)} - ${money.format(item.topProperty.total)}`
+    : "No property costs";
+
+  return `
+    <article class="expense-rank-row${topClass}">
+      <div class="rank-number">${index + 1}</div>
+      <div class="rank-main">
+        <div class="rank-title">
+          <strong>${monthLabel(item.key)}</strong>
+          <span>${item.count} ${item.count === 1 ? "expense" : "expenses"}</span>
+        </div>
+        <div class="expense-bar-track">
+          <div class="expense-bar-fill" style="width:${percentage}%"></div>
+        </div>
+        <p>Highest property: ${topProperty}</p>
       </div>
       <div class="rank-total">${money.format(item.total)}</div>
     </article>
@@ -750,6 +838,17 @@ function formatDate(value) {
 function yearKey(value) {
   if (!value) return "";
   return String(value).slice(0, 4);
+}
+
+function monthKey(value) {
+  if (!value) return "";
+  return String(value).slice(0, 7);
+}
+
+function monthLabel(key) {
+  if (key === "all") return "All Months";
+  const date = new Date(`${key}-01T00:00:00`);
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 function todayDate() {
