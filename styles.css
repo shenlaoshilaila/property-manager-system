@@ -468,9 +468,24 @@ textarea {
   padding: 12px;
 }
 
+.expense-rank-row[data-action="select-expense-property"] {
+  cursor: pointer;
+}
+
+.expense-rank-row[data-action="select-expense-property"]:hover,
+.expense-rank-row[data-action="select-expense-property"]:focus-visible {
+  border-color: var(--accent-2);
+  outline: 0;
+}
+
 .expense-rank-row.top {
   border-color: #d5a23f;
   background: #fff9e7;
+}
+
+.expense-rank-row.selected {
+  border-color: var(--accent-2);
+  box-shadow: 0 14px 32px rgba(182, 93, 50, 0.12);
 }
 
 .rank-number {
@@ -533,6 +548,65 @@ textarea {
   font-size: 20px;
   font-weight: 900;
   text-align: right;
+}
+
+.property-expense-detail {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: default;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.property-expense-detail-head {
+  align-items: center;
+  background: #f6f8f5;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.property-expense-detail-head h3,
+.property-expense-detail-head p {
+  margin: 0;
+}
+
+.property-expense-detail-head strong {
+  font-size: 20px;
+}
+
+.daily-cost-table-shell {
+  overflow: auto;
+}
+
+.daily-cost-table {
+  min-width: 620px;
+}
+
+.daily-cost-table td:nth-child(2) {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.daily-expense-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.daily-expense-chip {
+  background: #edf1ed;
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 26px;
+  padding: 5px 9px;
 }
 
 .list-item {

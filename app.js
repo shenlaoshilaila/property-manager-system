@@ -192,6 +192,7 @@ let activeView = "dashboard";
 let selectedProperty = "all";
 let selectedExpenseYear = null;
 let selectedExpenseMonth = "all";
+let selectedExpenseProperty = null;
 let selectedProfitYear = null;
 let selectedProfitMonth = "all";
 let dialogMode = null;
@@ -247,6 +248,7 @@ function bindNavigation() {
 
   $("#propertyFilter").addEventListener("change", (event) => {
     selectedProperty = event.target.value;
+    selectedExpenseProperty = null;
     render();
   });
 
@@ -275,8 +277,13 @@ function bindNavigation() {
 
 function bindActions() {
   document.body.addEventListener("click", (event) => {
-    const action = event.target.dataset.action;
-    const id = event.target.dataset.id;
+    if (event.target.closest(".property-expense-detail")) return;
+
+    const actionTarget = event.target.closest("[data-action]");
+    if (!actionTarget) return;
+
+    const action = actionTarget.dataset.action;
+    const id = actionTarget.dataset.id;
     if (!action) return;
 
     if (action === "add-property") openDialog("property");
@@ -293,6 +300,17 @@ function bindActions() {
     if (action === "edit-document") openDialog("document", id);
     if (action === "close-dialog") closeDialog();
     if (action === "delete-maintenance") deleteMaintenance(id);
+    if (action === "select-expense-property") selectExpenseProperty(id);
+  });
+
+  document.body.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    const actionTarget = event.target.closest('[data-action="select-expense-property"]');
+    if (!actionTarget) return;
+
+    event.preventDefault();
+    selectExpenseProperty(actionTarget.dataset.id);
   });
 
   $("#saveRecordBtn").addEventListener("click", saveDialogRecord);
@@ -300,11 +318,18 @@ function bindActions() {
   $("#resetDataBtn").addEventListener("click", () => {
     data = structuredClone(sampleData);
     selectedProperty = "all";
+    selectedExpenseProperty = null;
     saveData();
     populatePropertyFilter();
     render();
     showToast("Sample data restored");
   });
+}
+
+function selectExpenseProperty(propertyId) {
+  if (!propertyId) return;
+  selectedExpenseProperty = selectedExpenseProperty === propertyId ? null : propertyId;
+  renderExpenses();
 }
 
 function bindSettings() {
@@ -510,6 +535,9 @@ function renderExpenses() {
   const yearlyTotals = expenseTotalsByProperty(yearExpenses);
   const monthlyTotals = expenseTotalsByProperty(detailExpenses);
   const ranked = [...yearlyTotals].sort((a, b) => b.total - a.total);
+  if (selectedExpenseProperty && !ranked.some((item) => item.property.id === selectedExpenseProperty)) {
+    selectedExpenseProperty = null;
+  }
   const monthlyRanked = [...monthlyTotals].sort((a, b) => b.total - a.total);
   const yearTop = ranked.find((item) => item.total > 0);
   const monthTop = monthlyRanked.find((item) => item.total > 0);
@@ -533,7 +561,7 @@ function renderExpenses() {
 
   const maxTotal = Math.max(...ranked.map((item) => item.total), 1);
   $("#expenseRanking").innerHTML = ranked.length
-    ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal)).join("")
+    ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal, yearExpenses)).join("")
     : emptyState("No property expenses to rank");
 
   const monthlyCosts = expenseTotalsByMonth(yearExpenses);
@@ -632,15 +660,26 @@ function expenseInsightCard(label, value, note) {
   `;
 }
 
-function expenseRankRow(item, index, maxTotal) {
+function expenseRankRow(item, index, maxTotal, periodExpenses) {
   const percentage = item.total ? Math.max(4, Math.round((item.total / maxTotal) * 100)) : 0;
   const topClass = index === 0 && item.total > 0 ? " top" : "";
+  const isSelected = selectedExpenseProperty === item.property.id;
+  const selectedClass = isSelected ? " selected" : "";
   const biggest = item.biggestExpense
     ? `${escapeHtml(item.biggestExpense.category)} - ${money.format(item.biggestExpense.amount)}`
     : "No expenses";
+  const detailTable = isSelected ? propertyDailyExpenseTable(item.property, periodExpenses) : "";
 
   return `
-    <article class="expense-rank-row${topClass}">
+    <article
+      class="expense-rank-row${topClass}${selectedClass}"
+      data-action="select-expense-property"
+      data-id="${escapeHtml(item.property.id)}"
+      role="button"
+      tabindex="0"
+      aria-expanded="${isSelected}"
+      aria-label="${escapeHtml(item.property.name)} daily costs"
+    >
       <div class="rank-number">${index + 1}</div>
       <div class="rank-main">
         <div class="rank-title">
@@ -653,7 +692,73 @@ function expenseRankRow(item, index, maxTotal) {
         <p>${biggest}</p>
       </div>
       <div class="rank-total">${money.format(item.total)}</div>
+      ${detailTable}
     </article>
+  `;
+}
+
+function propertyDailyExpenseTable(property, expenses) {
+  const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
+  const dailyCosts = expenseTotalsByDay(propertyExpenses);
+  const periodLabel = selectedExpenseYear === "all" ? "all years" : selectedExpenseYear;
+  const propertyTotal = propertyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+  return `
+    <div class="property-expense-detail">
+      <div class="property-expense-detail-head">
+        <div>
+          <h3>${escapeHtml(property.name)} Daily Costs</h3>
+          <p>${periodLabel}</p>
+        </div>
+        <strong>${money.format(propertyTotal)}</strong>
+      </div>
+      <div class="daily-cost-table-shell">
+        <table class="daily-cost-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Daily Cost</th>
+              <th>Expenses</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dailyCosts.length ? dailyCosts.map(dailyCostRow).join("") : `<tr><td colspan="3">No expenses for this property in ${periodLabel}.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function expenseTotalsByDay(expenses) {
+  const dayMap = new Map();
+
+  expenses.forEach((expense) => {
+    const key = expense.date || "Not set";
+    const current = dayMap.get(key) || { date: key, total: 0, expenses: [] };
+    current.total += Number(expense.amount || 0);
+    current.expenses.push(expense);
+    dayMap.set(key, current);
+  });
+
+  return [...dayMap.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+function dailyCostRow(day) {
+  const entries = day.expenses
+    .sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0))
+    .map((expense) => {
+      const vendor = expense.vendor ? ` - ${escapeHtml(expense.vendor)}` : "";
+      return `<span class="daily-expense-chip">${escapeHtml(expense.category)}${vendor} - ${money.format(expense.amount)}</span>`;
+    })
+    .join("");
+
+  return `
+    <tr>
+      <td><strong>${day.date === "Not set" ? "Not set" : formatDate(day.date)}</strong></td>
+      <td>${money.format(day.total)}</td>
+      <td><div class="daily-expense-list">${entries}</div></td>
+    </tr>
   `;
 }
 
