@@ -277,14 +277,13 @@ function bindNavigation() {
 
 function bindActions() {
   document.body.addEventListener("click", (event) => {
-    if (event.target.closest(".property-expense-detail")) return;
-
     const actionTarget = event.target.closest("[data-action]");
     if (!actionTarget) return;
 
     const action = actionTarget.dataset.action;
     const id = actionTarget.dataset.id;
     if (!action) return;
+    if (event.target.closest(".property-expense-detail") && action === "select-expense-property") return;
 
     if (action === "add-property") openDialog("property");
     if (action === "edit-property") openDialog("property", id);
@@ -300,6 +299,8 @@ function bindActions() {
     if (action === "edit-document") openDialog("document", id);
     if (action === "close-dialog") closeDialog();
     if (action === "delete-maintenance") deleteMaintenance(id);
+    if (action === "add-expense-for-property") openExpenseForProperty(id);
+    if (action === "delete-expense") deleteExpense(id);
     if (action === "select-expense-property") selectExpenseProperty(id);
   });
 
@@ -330,6 +331,23 @@ function selectExpenseProperty(propertyId) {
   if (!propertyId) return;
   selectedExpenseProperty = selectedExpenseProperty === propertyId ? null : propertyId;
   renderExpenses();
+}
+
+function openExpenseForProperty(propertyId) {
+  if (!propertyId) return;
+
+  const defaultDate = selectedExpenseMonth !== "all"
+    ? `${selectedExpenseMonth}-01`
+    : selectedExpenseYear && selectedExpenseYear !== "all"
+      ? `${selectedExpenseYear}-01-01`
+      : todayDate();
+
+  openDialog("expense", null, {
+    propertyId,
+    date: defaultDate,
+    category: "Repairs",
+    amount: 0
+  });
 }
 
 function bindSettings() {
@@ -710,7 +728,10 @@ function propertyDailyExpenseTable(property, expenses) {
           <h3>${escapeHtml(property.name)} Total Costs</h3>
           <p>${periodLabel}</p>
         </div>
-        <strong>${money.format(propertyTotal)}</strong>
+        <div class="property-expense-detail-actions">
+          <strong>${money.format(propertyTotal)}</strong>
+          <button class="button compact" data-action="add-expense-for-property" data-id="${escapeHtml(property.id)}" type="button">Add Cost</button>
+        </div>
       </div>
       <div class="daily-cost-table-shell">
         <table class="daily-cost-table">
@@ -719,10 +740,11 @@ function propertyDailyExpenseTable(property, expenses) {
               <th>Date</th>
               <th>Total Cost</th>
               <th>Expenses</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${dailyCosts.length ? dailyCosts.map(dailyCostRow).join("") : `<tr><td colspan="3">No expenses for this property in ${periodLabel}.</td></tr>`}
+            ${dailyCosts.length ? dailyCosts.map(dailyCostRow).join("") : `<tr><td colspan="4">No expenses for this property in ${periodLabel}.</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -745,21 +767,27 @@ function expenseTotalsByDay(expenses) {
 }
 
 function dailyCostRow(day) {
-  const entries = day.expenses
-    .sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0))
-    .map((expense) => {
-      const vendor = expense.vendor ? ` - ${escapeHtml(expense.vendor)}` : "";
-      return `<span class="daily-expense-chip">${escapeHtml(expense.category)}${vendor} - ${money.format(expense.amount)}</span>`;
-    })
-    .join("");
+  const sortedExpenses = [...day.expenses].sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+  const entries = sortedExpenses.map(expenseChip).join("");
+  const deleteButtons = sortedExpenses.map((expense) => `
+    <button class="button compact danger-button" data-action="delete-expense" data-id="${escapeHtml(expense.id)}" type="button">
+      Delete ${escapeHtml(expense.category || "Cost")}
+    </button>
+  `).join("");
 
   return `
     <tr>
       <td><strong>${day.date === "Not set" ? "Not set" : formatDate(day.date)}</strong></td>
       <td>${money.format(day.total)}</td>
       <td><div class="daily-expense-list">${entries}</div></td>
+      <td><div class="daily-expense-actions">${deleteButtons}</div></td>
     </tr>
   `;
+}
+
+function expenseChip(expense) {
+  const vendor = expense.vendor ? ` - ${escapeHtml(expense.vendor)}` : "";
+  return `<span class="daily-expense-chip">${escapeHtml(expense.category)}${vendor} - ${money.format(expense.amount)}</span>`;
 }
 
 function expenseMonthRow(item, index, maxTotal) {
@@ -1070,6 +1098,19 @@ function deleteMaintenance(id) {
   showToast("Maintenance request deleted");
 }
 
+function deleteExpense(id) {
+  const expense = data.expenses.find((item) => item.id === id);
+  if (!expense) return;
+
+  const confirmed = window.confirm(`Delete cost "${expense.category}" for ${money.format(expense.amount)}?`);
+  if (!confirmed) return;
+
+  data.expenses = data.expenses.filter((item) => item.id !== id);
+  saveData();
+  render();
+  showToast("Cost deleted");
+}
+
 function maintenanceCard(request) {
   return `
     <article class="request-card">
@@ -1222,9 +1263,9 @@ function textareaField(label, name, value = "") {
   `;
 }
 
-function openDialog(type, id = null) {
+function openDialog(type, id = null, defaults = {}) {
   dialogMode = { type, id };
-  const record = findRecord(type, id);
+  const record = { ...defaults, ...findRecord(type, id) };
   $("#dialogTitle").textContent = `${id ? "Edit" : "Add"} ${titleForType(type)}`;
   $("#dialogFields").innerHTML = fieldsForType(type, record);
   $("#recordDialog").showModal();

@@ -575,7 +575,15 @@ textarea {
   margin: 0;
 }
 
-.property-expense-detail-head strong {
+.property-expense-detail-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.property-expense-detail-actions strong {
   font-size: 20px;
 }
 
@@ -584,7 +592,7 @@ textarea {
 }
 
 .daily-cost-table {
-  min-width: 620px;
+  min-width: 760px;
 }
 
 .daily-cost-table td:nth-child(2) {
@@ -592,10 +600,22 @@ textarea {
   white-space: nowrap;
 }
 
+.daily-cost-table th:last-child,
+.daily-cost-table td:last-child {
+  text-align: right;
+}
+
 .daily-expense-list {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+.daily-expense-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
 }
 
 .daily-expense-chip {
