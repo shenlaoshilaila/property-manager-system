@@ -678,7 +678,7 @@ function expenseRankRow(item, index, maxTotal, periodExpenses) {
       role="button"
       tabindex="0"
       aria-expanded="${isSelected}"
-      aria-label="${escapeHtml(item.property.name)} daily costs"
+      aria-label="${escapeHtml(item.property.name)} total costs"
     >
       <div class="rank-number">${index + 1}</div>
       <div class="rank-main">
@@ -707,7 +707,7 @@ function propertyDailyExpenseTable(property, expenses) {
     <div class="property-expense-detail">
       <div class="property-expense-detail-head">
         <div>
-          <h3>${escapeHtml(property.name)} Daily Costs</h3>
+          <h3>${escapeHtml(property.name)} Total Costs</h3>
           <p>${periodLabel}</p>
         </div>
         <strong>${money.format(propertyTotal)}</strong>
@@ -717,7 +717,7 @@ function propertyDailyExpenseTable(property, expenses) {
           <thead>
             <tr>
               <th>Date</th>
-              <th>Daily Cost</th>
+              <th>Total Cost</th>
               <th>Expenses</th>
             </tr>
           </thead>
