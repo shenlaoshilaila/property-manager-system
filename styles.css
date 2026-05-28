@@ -618,6 +618,11 @@ textarea {
   justify-content: flex-end;
 }
 
+.daily-expense-action-set {
+  display: inline-flex;
+  gap: 7px;
+}
+
 .daily-expense-chip {
   background: #edf1ed;
   border-radius: 999px;

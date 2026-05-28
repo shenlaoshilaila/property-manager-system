@@ -774,10 +774,15 @@ function expenseTotalsByDay(expenses) {
 function dailyCostRow(day) {
   const sortedExpenses = [...day.expenses].sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
   const entries = sortedExpenses.map(expenseChip).join("");
-  const deleteButtons = sortedExpenses.map((expense) => `
-    <button class="button compact danger-button" data-action="delete-expense" data-id="${escapeHtml(expense.id)}" type="button">
-      Delete ${escapeHtml(expense.category || "Cost")}
-    </button>
+  const actionButtons = sortedExpenses.map((expense) => `
+    <span class="daily-expense-action-set">
+      <button class="button compact ghost" data-action="edit-expense" data-id="${escapeHtml(expense.id)}" type="button">
+        Edit
+      </button>
+      <button class="button compact danger-button" data-action="delete-expense" data-id="${escapeHtml(expense.id)}" type="button">
+        Delete ${escapeHtml(expense.category || "Cost")}
+      </button>
+    </span>
   `).join("");
 
   return `
@@ -785,7 +790,7 @@ function dailyCostRow(day) {
       <td><strong>${day.date === "Not set" ? "Not set" : formatDate(day.date)}</strong></td>
       <td>${money.format(day.total)}</td>
       <td><div class="daily-expense-list">${entries}</div></td>
-      <td><div class="daily-expense-actions">${deleteButtons}</div></td>
+      <td><div class="daily-expense-actions">${actionButtons}</div></td>
     </tr>
   `;
 }
