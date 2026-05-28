@@ -777,7 +777,7 @@ function dailyCostRow(day) {
   const actionButtons = sortedExpenses.map((expense) => `
     <span class="daily-expense-action-set">
       <button class="button compact ghost" data-action="edit-expense" data-id="${escapeHtml(expense.id)}" type="button">
-        Edit
+        Edit ${escapeHtml(expense.category || "Cost")}
       </button>
       <button class="button compact danger-button" data-action="delete-expense" data-id="${escapeHtml(expense.id)}" type="button">
         Delete ${escapeHtml(expense.category || "Cost")}
