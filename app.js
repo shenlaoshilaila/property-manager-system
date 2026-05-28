@@ -552,12 +552,15 @@ function renderExpenses() {
   const detailExpenses = expensesForSelectedMonth(yearExpenses);
   const yearlyTotals = expenseTotalsByProperty(yearExpenses);
   const monthlyTotals = expenseTotalsByProperty(detailExpenses);
-  const ranked = [...yearlyTotals].sort((a, b) => b.total - a.total);
+  const yearRanked = [...yearlyTotals].sort((a, b) => b.total - a.total);
+  const rankingExpenses = selectedExpenseMonth === "all" ? yearExpenses : detailExpenses;
+  const rankingTotals = selectedExpenseMonth === "all" ? yearlyTotals : monthlyTotals;
+  const ranked = [...rankingTotals].sort((a, b) => b.total - a.total);
   if (selectedExpenseProperty && !ranked.some((item) => item.property.id === selectedExpenseProperty)) {
     selectedExpenseProperty = null;
   }
   const monthlyRanked = [...monthlyTotals].sort((a, b) => b.total - a.total);
-  const yearTop = ranked.find((item) => item.total > 0);
+  const yearTop = yearRanked.find((item) => item.total > 0);
   const monthTop = monthlyRanked.find((item) => item.total > 0);
   const totalSpent = yearExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const monthSpent = detailExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
@@ -573,13 +576,13 @@ function renderExpenses() {
     expenseInsightCard("Month Highest Property", monthTop ? escapeHtml(monthTop.property.name) : "None", monthTop ? `${money.format(monthTop.total)} for ${monthPeriodLabel}` : "No expenses recorded")
   ].join("");
 
-  $("#expenseRankingNote").textContent = selectedExpenseYear === "all"
-    ? "All recorded expenses"
-    : selectedExpenseYear;
+  $("#expenseRankingNote").textContent = selectedExpenseMonth === "all"
+    ? (selectedExpenseYear === "all" ? "All recorded expenses" : selectedExpenseYear)
+    : monthPeriodLabel;
 
   const maxTotal = Math.max(...ranked.map((item) => item.total), 1);
   $("#expenseRanking").innerHTML = ranked.length
-    ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal, yearExpenses)).join("")
+    ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal, rankingExpenses)).join("")
     : emptyState("No property expenses to rank");
 
   const monthlyCosts = expenseTotalsByMonth(yearExpenses);
@@ -718,7 +721,9 @@ function expenseRankRow(item, index, maxTotal, periodExpenses) {
 function propertyDailyExpenseTable(property, expenses) {
   const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
   const dailyCosts = expenseTotalsByDay(propertyExpenses);
-  const periodLabel = selectedExpenseYear === "all" ? "all years" : selectedExpenseYear;
+  const periodLabel = selectedExpenseMonth === "all"
+    ? (selectedExpenseYear === "all" ? "all years" : selectedExpenseYear)
+    : monthLabel(selectedExpenseMonth);
   const propertyTotal = propertyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
   return `
