@@ -258,6 +258,7 @@ textarea {
 .panel,
 .table-shell,
 .property-card,
+.property-payment-card,
 .document-card,
 .request-card {
   background: var(--panel);
@@ -318,6 +319,61 @@ textarea {
 
 .property-card {
   overflow: hidden;
+}
+
+.property-payment-list {
+  display: grid;
+  gap: 14px;
+}
+
+.property-payment-card {
+  overflow: hidden;
+}
+
+.property-payment-head {
+  align-items: center;
+  background: #fbfcf9;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.property-payment-head h3 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.property-payment-head p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.property-payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.property-payment-summary span {
+  background: #edf1ed;
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 5px;
+  padding: 8px 11px;
+}
+
+.property-payment-summary strong {
+  color: var(--ink);
+}
+
+.property-payment-table {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .property-visual {

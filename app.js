@@ -498,22 +498,70 @@ function renderTenants() {
 }
 
 function renderPayments() {
-  $("#paymentsTable").innerHTML = filtered(data.payments).map((payment) => {
-    const tenant = getTenant(payment.tenantId);
-    const balance = Number(payment.amountDue || 0) - Number(payment.amountPaid || 0);
-    return `
-      <tr>
-        <td><strong>${tenant ? escapeHtml(tenant.name) : "Unassigned"}</strong><br><span>${payment.method || "No method"}</span></td>
-        <td>${propertyName(payment.propertyId)}</td>
-        <td>${money.format(payment.amountDue)}</td>
-        <td>${money.format(payment.amountPaid)}</td>
-        <td>${money.format(balance)}</td>
-        <td>${formatDate(payment.dueDate)}</td>
-        <td>${statusBadge(payment.status)}</td>
-        <td><button class="button compact ghost" data-action="edit-payment" data-id="${payment.id}" type="button">Edit</button></td>
-      </tr>
-    `;
-  }).join("");
+  const properties = filtered(data.properties);
+  $("#paymentsTable").innerHTML = properties.length
+    ? properties.map(paymentPropertySection).join("")
+    : emptyState("No properties to show");
+}
+
+function paymentPropertySection(property) {
+  const propertyPayments = data.payments
+    .filter((payment) => payment.propertyId === property.id)
+    .sort((a, b) => String(b.dueDate || b.paidDate).localeCompare(String(a.dueDate || a.paidDate)));
+  const amountDue = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountDue || 0), 0);
+  const amountPaid = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountPaid || 0), 0);
+  const balance = amountDue - amountPaid;
+
+  return `
+    <section class="property-payment-card">
+      <div class="property-payment-head">
+        <div>
+          <h3>${escapeHtml(property.name)}</h3>
+          <p>${propertyPayments.length} ${propertyPayments.length === 1 ? "payment" : "payments"}</p>
+        </div>
+        <div class="property-payment-summary">
+          <span><strong>${money.format(amountDue)}</strong> due</span>
+          <span><strong>${money.format(amountPaid)}</strong> paid</span>
+          <span><strong>${money.format(balance)}</strong> balance</span>
+        </div>
+      </div>
+      <div class="table-shell property-payment-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Unit / Tenant</th>
+              <th>Due</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${propertyPayments.length ? propertyPayments.map(paymentPropertyRow).join("") : `<tr><td colspan="7">No payments recorded for this property.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function paymentPropertyRow(payment) {
+  const tenant = getTenant(payment.tenantId);
+  const balance = Number(payment.amountDue || 0) - Number(payment.amountPaid || 0);
+
+  return `
+    <tr>
+      <td><strong>${escapeHtml(tenant?.unit || "No unit")}</strong><br><span>${tenant ? escapeHtml(tenant.name) : "Unassigned"} - ${payment.method || "No method"}</span></td>
+      <td>${money.format(payment.amountDue)}</td>
+      <td>${money.format(payment.amountPaid)}</td>
+      <td>${money.format(balance)}</td>
+      <td>${formatDate(payment.dueDate)}</td>
+      <td>${statusBadge(payment.status)}</td>
+      <td><button class="button compact ghost" data-action="edit-payment" data-id="${payment.id}" type="button">Edit</button></td>
+    </tr>
+  `;
 }
 
 function renderMaintenance() {
