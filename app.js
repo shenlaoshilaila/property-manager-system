@@ -1436,7 +1436,19 @@ function normalizePayload(type, payload) {
 
   if (type === "payment") {
     const due = Number(payload.amountDue || 0);
-    const paid = Number(payload.amountPaid || 0);
+    let paid = Number(payload.amountPaid || 0);
+
+    if (payload.status === "Paid" && due > 0 && paid < due) {
+      payload.amountPaid = due;
+      paid = due;
+      if (!payload.paidDate) payload.paidDate = todayDate();
+    }
+
+    if (payload.status === "Unpaid") {
+      payload.amountPaid = 0;
+      paid = 0;
+    }
+
     if (paid >= due && due > 0) payload.status = "Paid";
     if (paid > 0 && paid < due) payload.status = "Partial";
     if (paid === 0 && payload.status === "Paid") payload.status = "Unpaid";
