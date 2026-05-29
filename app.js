@@ -388,7 +388,7 @@ function render() {
 
 function filtered(items) {
   if (selectedProperty === "all") return items;
-  return items.filter((item) => item.propertyId === selectedProperty || item.id === selectedProperty);
+  return items.filter((item) => itemPropertyId(item) === selectedProperty || item.id === selectedProperty);
 }
 
 function getProperty(id) {
@@ -399,10 +399,20 @@ function getTenant(id) {
   return data.tenants.find((tenant) => tenant.id === id);
 }
 
+function itemPropertyId(item) {
+  if ("amountDue" in item && "amountPaid" in item) return paymentPropertyId(item);
+  return item.propertyId || item.id;
+}
+
+function paymentPropertyId(payment) {
+  const tenant = getTenant(payment.tenantId);
+  return tenant?.propertyId || payment.propertyId;
+}
+
 function propertyMetrics(propertyId) {
   const property = getProperty(propertyId);
   const tenants = data.tenants.filter((tenant) => tenant.propertyId === propertyId && tenant.status === "Active");
-  const payments = data.payments.filter((payment) => payment.propertyId === propertyId);
+  const payments = data.payments.filter((payment) => paymentPropertyId(payment) === propertyId);
   const expenses = data.expenses.filter((expense) => expense.propertyId === propertyId);
   const maintenance = data.maintenance.filter((request) => request.propertyId === propertyId);
   const expected = payments.reduce((sum, payment) => sum + Number(payment.amountDue || 0), 0);
@@ -506,7 +516,7 @@ function renderPayments() {
 
 function paymentPropertySection(property) {
   const propertyPayments = data.payments
-    .filter((payment) => payment.propertyId === property.id)
+    .filter((payment) => paymentPropertyId(payment) === property.id)
     .sort((a, b) => String(b.dueDate || b.paidDate).localeCompare(String(a.dueDate || a.paidDate)));
   const amountDue = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountDue || 0), 0);
   const amountPaid = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountPaid || 0), 0);
@@ -997,7 +1007,7 @@ function expensesForSelectedProfitMonth(expenses) {
 
 function profitTotalsByProperty(payments, expenses) {
   return filtered(data.properties).map((property) => {
-    const propertyPayments = payments.filter((payment) => payment.propertyId === property.id);
+    const propertyPayments = payments.filter((payment) => paymentPropertyId(payment) === property.id);
     const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
     const expected = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountDue || 0), 0);
     const income = propertyPayments.reduce((sum, payment) => sum + Number(payment.amountPaid || 0), 0);
@@ -1387,9 +1397,10 @@ function fieldsForType(type, record) {
   }
 
   if (type === "payment") {
+    const paymentProperty = paymentPropertyId(record);
     return [
       selectField("Tenant", "tenantId", optionsForTenants(record.tenantId)),
-      selectField("Property", "propertyId", optionsForProperties(record.propertyId)),
+      selectField("Property", "propertyId", optionsForProperties(paymentProperty)),
       field("Amount Due", "amountDue", "number", record.amountDue || 0, { min: 0, step: 1 }),
       field("Amount Paid", "amountPaid", "number", record.amountPaid || 0, { min: 0, step: 1 }),
       field("Due Date", "dueDate", "date", record.dueDate),
@@ -1483,6 +1494,9 @@ function normalizePayload(type, payload) {
   });
 
   if (type === "payment") {
+    const tenant = getTenant(payload.tenantId);
+    if (tenant?.propertyId) payload.propertyId = tenant.propertyId;
+
     const due = Number(payload.amountDue || 0);
     let paid = Number(payload.amountPaid || 0);
 
