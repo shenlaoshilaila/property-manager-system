@@ -299,6 +299,7 @@ function bindActions() {
     if (action === "edit-document") openDialog("document", id);
     if (action === "close-dialog") closeDialog();
     if (action === "delete-maintenance") deleteMaintenance(id);
+    if (action === "add-payment-for-property") openPaymentForProperty(id);
     if (action === "add-expense-for-property") openExpenseForProperty(id);
     if (action === "delete-expense") deleteExpense(id);
     if (action === "select-expense-property") selectExpenseProperty(id);
@@ -347,6 +348,23 @@ function openExpenseForProperty(propertyId) {
     date: defaultDate,
     category: "Repairs",
     amount: 0
+  });
+}
+
+function openPaymentForProperty(propertyId) {
+  if (!propertyId) return;
+
+  const tenant = data.tenants.find((item) => item.propertyId === propertyId && item.status === "Active");
+
+  openDialog("payment", null, {
+    tenantId: tenant?.id || "",
+    propertyId,
+    amountDue: tenant?.rent || 0,
+    amountPaid: 0,
+    dueDate: todayDate(),
+    paidDate: "",
+    method: "",
+    status: "Unpaid"
   });
 }
 
@@ -529,10 +547,15 @@ function paymentPropertySection(property) {
           <h3>${escapeHtml(property.name)}</h3>
           <p>${propertyPayments.length} ${propertyPayments.length === 1 ? "payment" : "payments"}</p>
         </div>
-        <div class="property-payment-summary">
-          <span><strong>${money.format(amountDue)}</strong> due</span>
-          <span><strong>${money.format(amountPaid)}</strong> paid</span>
-          <span><strong>${money.format(balance)}</strong> balance</span>
+        <div class="property-payment-head-actions">
+          <div class="property-payment-summary">
+            <span><strong>${money.format(amountDue)}</strong> due</span>
+            <span><strong>${money.format(amountPaid)}</strong> paid</span>
+            <span><strong>${money.format(balance)}</strong> balance</span>
+          </div>
+          <button class="button compact" data-action="add-payment-for-property" data-id="${escapeHtml(property.id)}" type="button">
+            Add Payment
+          </button>
         </div>
       </div>
       <div class="table-shell property-payment-table">
@@ -1283,9 +1306,12 @@ function optionsForProperties(selected = "") {
 }
 
 function optionsForTenants(selected = "") {
-  return data.tenants.map((tenant) => `
+  return [
+    `<option value="" ${selected ? "" : "selected"}>Unassigned</option>`,
+    ...data.tenants.map((tenant) => `
     <option value="${tenant.id}" ${tenant.id === selected ? "selected" : ""}>${escapeHtml(tenant.name)}</option>
-  `).join("");
+  `)
+  ].join("");
 }
 
 function selectOptions(values, selected = "") {

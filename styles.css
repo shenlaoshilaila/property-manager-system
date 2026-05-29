@@ -357,6 +357,14 @@ textarea {
   justify-content: flex-end;
 }
 
+.property-payment-head-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 .property-payment-summary span {
   background: #edf1ed;
   border-radius: 999px;
