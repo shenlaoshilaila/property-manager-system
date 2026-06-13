@@ -291,6 +291,7 @@ function bindActions() {
     if (action === "edit-tenant") openDialog("tenant", id);
     if (action === "add-payment") openDialog("payment");
     if (action === "edit-payment") openDialog("payment", id);
+    if (action === "delete-payment") deletePayment(id);
     if (action === "add-maintenance") openDialog("maintenance");
     if (action === "edit-maintenance") openDialog("maintenance", id);
     if (action === "add-expense") openDialog("expense");
@@ -592,7 +593,12 @@ function paymentPropertyRow(payment) {
       <td>${money.format(balance)}</td>
       <td>${formatDate(payment.dueDate)}</td>
       <td>${statusBadge(payment.status)}</td>
-      <td><button class="button compact ghost" data-action="edit-payment" data-id="${payment.id}" type="button">Edit</button></td>
+      <td>
+        <div class="row-actions">
+          <button class="button compact ghost" data-action="edit-payment" data-id="${payment.id}" type="button">Edit</button>
+          <button class="button compact danger-button" data-action="delete-payment" data-id="${payment.id}" type="button">Delete</button>
+        </div>
+      </td>
     </tr>
   `;
 }
@@ -1187,6 +1193,21 @@ function deleteMaintenance(id) {
   saveData();
   render();
   showToast("Maintenance request deleted");
+}
+
+function deletePayment(id) {
+  const payment = data.payments.find((item) => item.id === id);
+  if (!payment) return;
+
+  const tenant = getTenant(payment.tenantId);
+  const label = tenant ? tenant.name : "this payment";
+  const confirmed = window.confirm(`Delete payment for ${label} (${money.format(payment.amountPaid || payment.amountDue || 0)})?`);
+  if (!confirmed) return;
+
+  data.payments = data.payments.filter((item) => item.id !== id);
+  saveData();
+  render();
+  showToast("Payment deleted");
 }
 
 function deleteExpense(id) {
