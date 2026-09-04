@@ -695,7 +695,7 @@ function renderExpenses() {
   $("#expenseInsights").innerHTML = [
     expenseInsightCard("Year Total", money.format(totalSpent), `${expenseCount} expense ${expenseCount === 1 ? "entry" : "entries"} in ${periodLabel}`),
     expenseInsightCard("Year Highest Property", yearTop ? escapeHtml(yearTop.property.name) : "None", yearTop ? `${money.format(yearTop.total)} in ${periodLabel}` : "No expenses recorded"),
-    expenseInsightCard("Highest Expense Month", highestMonth ? monthLabel(highestMonth.key) : "None", highestMonth ? `${money.format(highestMonth.total)} from ${highestMonth.count} expense ${highestMonth.count === 1 ? "entry" : "entries"}` : `No monthly expenses in ${periodLabel}`),
+    expenseInsightCard("Year Highest Month", highestMonth ? monthLabel(highestMonth.key) : "None", highestMonth ? `${money.format(highestMonth.total)} from ${highestMonth.count} expense ${highestMonth.count === 1 ? "entry" : "entries"} in ${periodLabel}` : `No monthly expenses in ${periodLabel}`),
     expenseInsightCard("Month Highest Property", monthTop ? escapeHtml(monthTop.property.name) : "None", monthTop ? `${money.format(monthTop.total)} for ${monthPeriodLabel}` : "No expenses recorded")
   ].join("");
 
