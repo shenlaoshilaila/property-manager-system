@@ -686,16 +686,16 @@ function renderExpenses() {
   const yearTop = yearRanked.find((item) => item.total > 0);
   const monthTop = monthlyRanked.find((item) => item.total > 0);
   const totalSpent = yearExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const monthSpent = detailExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const expenseCount = yearExpenses.length;
-  const monthCount = detailExpenses.length;
   const periodLabel = selectedExpenseYear === "all" ? "all years" : selectedExpenseYear;
   const monthPeriodLabel = selectedExpenseMonth === "all" ? `all months in ${periodLabel}` : monthLabel(selectedExpenseMonth);
+  const monthlyCosts = expenseTotalsByMonth(yearExpenses);
+  const highestMonth = monthlyCosts.find((item) => item.total > 0);
 
   $("#expenseInsights").innerHTML = [
     expenseInsightCard("Year Total", money.format(totalSpent), `${expenseCount} expense ${expenseCount === 1 ? "entry" : "entries"} in ${periodLabel}`),
     expenseInsightCard("Year Highest Property", yearTop ? escapeHtml(yearTop.property.name) : "None", yearTop ? `${money.format(yearTop.total)} in ${periodLabel}` : "No expenses recorded"),
-    expenseInsightCard("Month Total", money.format(monthSpent), `${monthCount} expense ${monthCount === 1 ? "entry" : "entries"} for ${monthPeriodLabel}`),
+    expenseInsightCard("Highest Expense Month", highestMonth ? monthLabel(highestMonth.key) : "None", highestMonth ? `${money.format(highestMonth.total)} from ${highestMonth.count} expense ${highestMonth.count === 1 ? "entry" : "entries"}` : `No monthly expenses in ${periodLabel}`),
     expenseInsightCard("Month Highest Property", monthTop ? escapeHtml(monthTop.property.name) : "None", monthTop ? `${money.format(monthTop.total)} for ${monthPeriodLabel}` : "No expenses recorded")
   ].join("");
 
@@ -708,7 +708,6 @@ function renderExpenses() {
     ? ranked.map((item, index) => expenseRankRow(item, index, maxTotal, rankingExpenses)).join("")
     : emptyState("No property expenses to rank");
 
-  const monthlyCosts = expenseTotalsByMonth(yearExpenses);
   const maxMonthTotal = Math.max(...monthlyCosts.map((item) => item.total), 1);
   $("#expenseMonthNote").textContent = selectedExpenseYear === "all" ? "All years" : selectedExpenseYear;
   $("#expenseMonthBreakdown").innerHTML = monthlyCosts.length
