@@ -784,7 +784,10 @@ function expenseTotalsByMonth(expenses) {
     monthMap.set(key, current);
   });
 
-  return [...monthMap.values()].sort((a, b) => b.key.localeCompare(a.key)).map((month) => {
+  return [...monthMap.values()].sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return b.key.localeCompare(a.key);
+  }).map((month) => {
     const rankedProperties = expenseTotalsByProperty(month.expenses).sort((a, b) => b.total - a.total);
     return {
       ...month,
