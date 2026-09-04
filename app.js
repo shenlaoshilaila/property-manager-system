@@ -338,15 +338,9 @@ function selectExpenseProperty(propertyId) {
 function openExpenseForProperty(propertyId) {
   if (!propertyId) return;
 
-  const defaultDate = selectedExpenseMonth !== "all"
-    ? `${selectedExpenseMonth}-01`
-    : selectedExpenseYear && selectedExpenseYear !== "all"
-      ? `${selectedExpenseYear}-01-01`
-      : todayDate();
-
   openDialog("expense", null, {
     propertyId,
-    date: defaultDate,
+    date: todayDate(),
     category: "Repairs",
     amount: 0
   });
@@ -1477,7 +1471,7 @@ function fieldsForType(type, record) {
   if (type === "expense") {
     return [
       selectField("Property", "propertyId", optionsForProperties(record.propertyId)),
-      field("Date", "date", "date", record.date),
+      field("Date", "date", "date", record.date || todayDate()),
       field("Category", "category", "text", record.category || "Repairs"),
       field("Vendor", "vendor", "text", record.vendor),
       field("Amount", "amount", "number", record.amount || 0, { min: 0, step: 1 }),
