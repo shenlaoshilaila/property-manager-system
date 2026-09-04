@@ -614,6 +614,13 @@ textarea {
   text-align: right;
 }
 
+.rank-side {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .property-expense-detail {
   background: #ffffff;
   border: 1px solid var(--line);
@@ -649,6 +656,31 @@ textarea {
 
 .property-expense-detail-actions strong {
   font-size: 20px;
+}
+
+.expense-search-bar {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  padding: 12px;
+}
+
+.expense-search-bar label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.expense-search-bar input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  min-height: 38px;
+  padding: 0 11px;
 }
 
 .daily-cost-table-shell {
@@ -977,9 +1009,15 @@ dialog::backdrop {
     grid-template-columns: 36px minmax(0, 1fr);
   }
 
+  .rank-side,
   .rank-total {
     grid-column: 2;
+    align-items: flex-start;
     text-align: left;
+  }
+
+  .expense-search-bar {
+    grid-template-columns: 1fr;
   }
 
   .nav {

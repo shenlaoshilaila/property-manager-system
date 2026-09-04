@@ -193,6 +193,7 @@ let selectedProperty = "all";
 let selectedExpenseYear = null;
 let selectedExpenseMonth = "all";
 let selectedExpenseProperty = null;
+let selectedExpenseSearchTerms = {};
 let selectedProfitYear = null;
 let selectedProfitMonth = "all";
 let dialogMode = null;
@@ -302,12 +303,23 @@ function bindActions() {
     if (action === "delete-maintenance") deleteMaintenance(id);
     if (action === "add-payment-for-property") openPaymentForProperty(id);
     if (action === "add-expense-for-property") openExpenseForProperty(id);
+    if (action === "open-expense-search") openExpenseSearch(id);
+    if (action === "apply-expense-search") applyExpenseSearch(id, actionTarget);
+    if (action === "clear-expense-search") clearExpenseSearch(id);
     if (action === "delete-expense") deleteExpense(id);
     if (action === "select-expense-property") selectExpenseProperty(id);
   });
 
   document.body.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.classList.contains("expense-search-input")) return;
+
+    event.preventDefault();
+    applyExpenseSearch(event.target.dataset.expenseSearch, event.target);
+  });
+
+  document.body.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target.closest("button, input, select, textarea")) return;
 
     const actionTarget = event.target.closest('[data-action="select-expense-property"]');
     if (!actionTarget) return;
@@ -322,6 +334,7 @@ function bindActions() {
     data = structuredClone(sampleData);
     selectedProperty = "all";
     selectedExpenseProperty = null;
+    selectedExpenseSearchTerms = {};
     saveData();
     populatePropertyFilter();
     render();
@@ -332,6 +345,35 @@ function bindActions() {
 function selectExpenseProperty(propertyId) {
   if (!propertyId) return;
   selectedExpenseProperty = selectedExpenseProperty === propertyId ? null : propertyId;
+  renderExpenses();
+}
+
+function openExpenseSearch(propertyId) {
+  if (!propertyId) return;
+
+  selectedExpenseProperty = propertyId;
+  renderExpenses();
+  window.setTimeout(() => {
+    const input = $$(".expense-search-input").find((element) => element.dataset.expenseSearch === propertyId);
+    input?.focus();
+  }, 0);
+}
+
+function applyExpenseSearch(propertyId, control) {
+  if (!propertyId) return;
+
+  const detail = control.closest(".property-expense-detail");
+  const input = detail?.querySelector(".expense-search-input");
+  selectedExpenseSearchTerms[propertyId] = input?.value.trim() || "";
+  selectedExpenseProperty = propertyId;
+  renderExpenses();
+}
+
+function clearExpenseSearch(propertyId) {
+  if (!propertyId) return;
+
+  selectedExpenseSearchTerms[propertyId] = "";
+  selectedExpenseProperty = propertyId;
   renderExpenses();
 }
 
@@ -793,7 +835,10 @@ function expenseRankRow(item, index, maxTotal, periodExpenses) {
         </div>
         <p>${biggest}</p>
       </div>
-      <div class="rank-total">${money.format(item.total)}</div>
+      <div class="rank-side">
+        <div class="rank-total">${money.format(item.total)}</div>
+        <button class="button compact ghost" data-action="open-expense-search" data-id="${escapeHtml(item.property.id)}" type="button">Search</button>
+      </div>
       ${detailTable}
     </article>
   `;
@@ -801,23 +846,38 @@ function expenseRankRow(item, index, maxTotal, periodExpenses) {
 
 function propertyDailyExpenseTable(property, expenses) {
   const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
-  const dailyCosts = expenseTotalsByDay(propertyExpenses);
+  const searchTerm = selectedExpenseSearchTerms[property.id] || "";
+  const searchedExpenses = searchTerm
+    ? propertyExpenses.filter((expense) => expenseMatchesSearch(expense, searchTerm))
+    : propertyExpenses;
+  const dailyCosts = expenseTotalsByDay(searchedExpenses);
   const periodLabel = selectedExpenseMonth === "all"
     ? (selectedExpenseYear === "all" ? "all years" : selectedExpenseYear)
     : monthLabel(selectedExpenseMonth);
-  const propertyTotal = propertyExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const propertyTotal = searchedExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const searchNote = searchTerm
+    ? `${searchedExpenses.length} of ${propertyExpenses.length} expenses matched "${escapeHtml(searchTerm)}"`
+    : `${propertyExpenses.length} ${propertyExpenses.length === 1 ? "expense" : "expenses"} in this period`;
 
   return `
     <div class="property-expense-detail">
       <div class="property-expense-detail-head">
         <div>
           <h3>${escapeHtml(property.name)} Total Costs</h3>
-          <p>${periodLabel}</p>
+          <p>${periodLabel} - ${searchNote}</p>
         </div>
         <div class="property-expense-detail-actions">
           <strong>${money.format(propertyTotal)}</strong>
           <button class="button compact" data-action="add-expense-for-property" data-id="${escapeHtml(property.id)}" type="button">Add Cost</button>
         </div>
+      </div>
+      <div class="expense-search-bar">
+        <label>
+          Search Expenses
+          <input class="expense-search-input" data-expense-search="${escapeHtml(property.id)}" value="${escapeHtml(searchTerm)}" placeholder="Category, vendor, note, date, or amount">
+        </label>
+        <button class="button compact" data-action="apply-expense-search" data-id="${escapeHtml(property.id)}" type="button">Search</button>
+        <button class="button compact ghost" data-action="clear-expense-search" data-id="${escapeHtml(property.id)}" type="button">Clear</button>
       </div>
       <div class="daily-cost-table-shell">
         <table class="daily-cost-table">
@@ -830,12 +890,27 @@ function propertyDailyExpenseTable(property, expenses) {
             </tr>
           </thead>
           <tbody>
-            ${dailyCosts.length ? dailyCosts.map(dailyCostRow).join("") : `<tr><td colspan="4">No expenses for this property in ${periodLabel}.</td></tr>`}
+            ${dailyCosts.length ? dailyCosts.map(dailyCostRow).join("") : `<tr><td colspan="4">No matching expenses for this property in ${periodLabel}.</td></tr>`}
           </tbody>
         </table>
       </div>
     </div>
   `;
+}
+
+function expenseMatchesSearch(expense, searchTerm) {
+  const query = searchTerm.toLowerCase();
+  const haystack = [
+    expense.category,
+    expense.vendor,
+    expense.notes,
+    expense.date,
+    formatDate(expense.date),
+    money.format(expense.amount),
+    String(expense.amount || "")
+  ].join(" ").toLowerCase();
+
+  return haystack.includes(query);
 }
 
 function expenseTotalsByDay(expenses) {
