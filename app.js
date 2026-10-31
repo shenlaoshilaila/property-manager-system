@@ -1045,12 +1045,10 @@ function renderReports() {
     ? ranked.map((item, index) => profitRankRow(item, index, maxYearProfit)).join("")
     : emptyState("No property profit to rank");
 
-  const monthlyProfits = profitTotalsByMonth(yearPayments, yearExpenses);
-  const maxMonthProfit = Math.max(...monthlyProfits.map((item) => Math.abs(item.profit)), 1);
-  $("#profitMonthNote").textContent = selectedProfitYear === "all" ? "All years" : selectedProfitYear;
-  $("#profitMonthBreakdown").innerHTML = monthlyProfits.length
-    ? monthlyProfits.map((item, index) => profitMonthRow(item, index, maxMonthProfit)).join("")
-    : emptyState("No monthly profit to show");
+  $("#profitMonthNote").textContent = `Income received - expenses · ${periodLabel}`;
+  $("#profitMonthBreakdown").innerHTML = filtered(data.properties).map((property) =>
+    propertyMonthlyReport(property, yearPayments, yearExpenses)
+  ).join("") || emptyState("No properties to report");
 
   $("#reportsTable").innerHTML = periodRanked.map(({ property, expected, income, outstanding, expenses, profit }) => `
     <tr>
@@ -1136,26 +1134,65 @@ function profitSummary(payments, expenses) {
   };
 }
 
-function profitTotalsByMonth(payments, expenses) {
-  const months = new Set([
-    ...payments.map((payment) => monthKey(paymentDate(payment))).filter(Boolean),
-    ...expenses.map((expense) => monthKey(expense.date)).filter(Boolean)
-  ]);
+function propertyReportMonths(payments, expenses) {
+  const years = selectedProfitYear === "all"
+    ? [...new Set([
+      ...payments.map((payment) => yearKey(paymentDate(payment))),
+      ...expenses.map((expense) => yearKey(expense.date))
+    ].filter(Boolean))].sort().reverse()
+    : [selectedProfitYear];
+  const months = years.flatMap((year) =>
+    Array.from({ length: 12 }, (_, index) => `${year}-${String(12 - index).padStart(2, "0")}`)
+  );
+  return selectedProfitMonth === "all" ? months : months.filter((key) => key === selectedProfitMonth);
+}
 
-  return [...months].sort().reverse().map((key) => {
-    const monthPayments = payments.filter((payment) => monthKey(paymentDate(payment)) === key);
-    const monthExpenses = expenses.filter((expense) => monthKey(expense.date) === key);
-    const rankedProperties = profitTotalsByProperty(monthPayments, monthExpenses).sort((a, b) => b.profit - a.profit);
-    const summary = profitSummary(monthPayments, monthExpenses);
+function propertyMonthlyReport(property, payments, expenses) {
+  const propertyPayments = payments.filter((payment) => paymentPropertyId(payment) === property.id);
+  const propertyExpenses = expenses.filter((expense) => expense.propertyId === property.id);
+  const months = propertyReportMonths(payments, expenses);
+  const rows = months.map((key) => ({
+    key,
+    ...profitSummary(
+      propertyPayments.filter((payment) => monthKey(paymentDate(payment)) === key),
+      propertyExpenses.filter((expense) => monthKey(expense.date) === key)
+    )
+  }));
+  const total = rows.reduce((sum, row) => ({
+    income: sum.income + row.income,
+    expenses: sum.expenses + row.expenses,
+    profit: sum.profit + row.profit
+  }), { income: 0, expenses: 0, profit: 0 });
+  const netCell = (value) => `<strong class="status ${value < 0 ? "danger" : value > 0 ? "good" : ""}">${money.format(value)}</strong>`;
 
-    return {
-      key,
-      ...summary,
-      topProperty: rankedProperties[0],
-      payments: monthPayments.length,
-      expenseCount: monthExpenses.length
-    };
-  });
+  return `
+    <article class="property-payment-card">
+      <div class="property-payment-head">
+        <div>
+          <h3>${escapeHtml(property.name)}</h3>
+          <p>${escapeHtml(property.address || "")}</p>
+        </div>
+        <div class="property-payment-summary">
+          <span>Income <strong>${money.format(total.income)}</strong></span>
+          <span>Expenses <strong>${money.format(total.expenses)}</strong></span>
+          <span>Net profit <strong>${money.format(total.profit)}</strong></span>
+        </div>
+      </div>
+      <div class="table-shell property-payment-table">
+        <table>
+          <caption class="muted-line" style="text-align:left;padding:12px">
+            ${escapeHtml(property.name)} monthly report. Net profit = income - expenses.
+            Income uses the payment date (due date when no payment date is recorded).
+          </caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Net profit</th></tr></thead>
+          <tbody>${rows.map((row) => `
+            <tr><th scope="row">${monthLabel(row.key)}</th><td>${money.format(row.income)}</td><td>${money.format(row.expenses)}</td><td>${netCell(row.profit)}</td></tr>
+          `).join("") || '<tr><td colspan="4">No monthly records to show</td></tr>'}</tbody>
+          <tfoot><tr><th scope="row">Total</th><td><strong>${money.format(total.income)}</strong></td><td><strong>${money.format(total.expenses)}</strong></td><td>${netCell(total.profit)}</td></tr></tfoot>
+        </table>
+      </div>
+    </article>
+  `;
 }
 
 function profitRankRow(item, index, maxProfit) {
@@ -1175,32 +1212,6 @@ function profitRankRow(item, index, maxProfit) {
           <div class="expense-bar-fill profit-bar-fill${fillClass}" style="width:${percentage}%"></div>
         </div>
         <p>${money.format(item.income)} rent - ${money.format(item.expenses)} expenses</p>
-      </div>
-      <div class="rank-total">${money.format(item.profit)}</div>
-    </article>
-  `;
-}
-
-function profitMonthRow(item, index, maxProfit) {
-  const percentage = Math.max(4, Math.round((Math.abs(item.profit) / maxProfit) * 100));
-  const topClass = index === 0 && item.profit > 0 ? " top" : "";
-  const fillClass = item.profit < 0 ? " loss" : "";
-  const topProperty = item.topProperty
-    ? `${escapeHtml(item.topProperty.property.name)} - ${money.format(item.topProperty.profit)}`
-    : "No property profit";
-
-  return `
-    <article class="expense-rank-row${topClass}">
-      <div class="rank-number">${index + 1}</div>
-      <div class="rank-main">
-        <div class="rank-title">
-          <strong>${monthLabel(item.key)}</strong>
-          <span>${item.payments} rent / ${item.expenseCount} expenses</span>
-        </div>
-        <div class="expense-bar-track">
-          <div class="expense-bar-fill profit-bar-fill${fillClass}" style="width:${percentage}%"></div>
-        </div>
-        <p>Highest property: ${topProperty}</p>
       </div>
       <div class="rank-total">${money.format(item.profit)}</div>
     </article>
@@ -1648,3 +1659,4 @@ function showToast(message) {
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
 }
+
